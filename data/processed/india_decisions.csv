@@ -1,0 +1,4 @@
+Borrower Type [SYNTHETIC],Avg Monthly Income (INR),Loan Amount (INR),LightGBM Default Prob,LightGBM Decision,Scorecard Default Prob,Scorecard Decision
+Kirana Shop Owner,"₹41,562","₹200,000",0.6571,Decline,0.4287,Refer
+Gig Worker (Swiggy/Ola),"₹24,935","₹100,000",0.5617,Decline,0.3613,Refer
+Small Farmer,"₹23,823","₹150,000",0.4906,Refer,0.3463,Refer

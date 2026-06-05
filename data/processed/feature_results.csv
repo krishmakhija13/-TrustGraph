@@ -1,0 +1,3 @@
+Model,AUC_ROC,KS_Statistic,AUC_Delta,KS_Delta
+LightGBM Baseline (02),0.7611,0.3908,0.0,0.0
+LightGBM + Engineered (03),0.7689,0.4032,0.0078,0.0124

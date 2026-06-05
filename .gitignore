@@ -1,0 +1,53 @@
+# ── Raw data — never commit (large files, Kaggle TOS) ─────────────────────────
+data/raw/
+
+# ── Trained model artifacts — regenerate from notebooks ───────────────────────
+models/*.pkl
+
+# ── Python cache ──────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+
+# ── Jupyter ────────────────────────────────────────────────────────────────────
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# ── Secrets and environment ────────────────────────────────────────────────────
+.env
+.env.*
+*.env
+
+# ── OS artefacts ───────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Virtual environments ────────────────────────────────────────────────────────
+venv/
+.venv/
+env/
+.conda/
+
+# ── Editor / IDE ────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# ── Temp / build ────────────────────────────────────────────────────────────────
+*.egg-info/
+dist/
+build/
+*.log
+*.tmp
+
+# features_train.csv is 202 MB — regenerate by running notebook 03
+data/processed/features_train.csv
+
+# ── NOTE: all other data/processed/*.csv ARE tracked (small generated outputs) ─
+# NOTE: data/processed/eda_charts/*.png IS tracked (generated plots)
+# NOTE: src/*.py IS tracked
+# NOTE: notebooks/*.ipynb IS tracked (including outputs)
+# NOTE: app/streamlit_app.py IS tracked

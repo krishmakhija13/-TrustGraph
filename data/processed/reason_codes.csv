@@ -1,0 +1,4 @@
+borrower_type,default_prob,decision,reason_code,data_is_synthetic
+Kirana Shop Owner,0.6571,Decline,"Declined — weak external credit scores, at least one very low bureau score. Mitigating factor: positive applicant profile, but insufficient to offset risk profile. Predicted default probability: 65.7%.",True
+Gig Worker (Swiggy/Ola),0.5617,Decline,"Declined — weak external credit scores, weak tertiary bureau score. Mitigating factor: positive applicant profile, but insufficient to offset risk profile. Predicted default probability: 56.2%.",True
+Small Farmer,0.4906,Refer,"Refer for manual review — borderline risk profile. Strengths: positive applicant profile. Concerns: weak external credit scores, weak tertiary bureau score. Predicted default probability: 49.1% — recommend additional income verification.",True

@@ -1,0 +1,2 @@
+Model,AUC_ROC,Gini,KS_Statistic,Avg_Precision,Best_Iteration,n_estimators,learning_rate,num_leaves
+LightGBM Production (04),0.7707,0.5414,0.4049,0.2597,514,1000,0.03,63
