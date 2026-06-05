@@ -126,13 +126,186 @@ hr { border-color: #1e293b !important; }
 """, unsafe_allow_html=True)
 
 
-# ── Load models (cached) ───────────────────────────────────────────────────────
-@st.cache_resource(show_spinner="Loading TrustGraph models…")
+# ── WOE helpers (needed at train time too) ─────────────────────────────────────
+def _compute_woe_bins(series, target, n_bins=10):
+    eps = 1e-6
+    total_ev  = float(target.sum())
+    total_nev = float(len(target) - total_ev)
+    records   = []
+    miss_mask = series.isna()
+    if miss_mask.any():
+        ev  = float(target[miss_mask].sum())
+        nev = float(miss_mask.sum() - ev)
+        d_ev = ev / total_ev + eps; d_nv = nev / total_nev + eps
+        woe = np.log(d_ev / d_nv)
+        records.append({"Bin": "MISSING", "Low": np.nan, "High": np.nan,
+                        "Count": int(miss_mask.sum()), "Events": int(ev),
+                        "NonEvents": int(nev), "EventRate": ev / max(miss_mask.sum(), 1),
+                        "WoE": woe, "IV": (d_ev - d_nv) * woe})
+    clean = series[~miss_mask].values
+    tgt_c = target[~miss_mask].values
+    bps   = np.unique(np.percentile(clean, np.linspace(0, 100, n_bins + 1)))
+    for i in range(len(bps) - 1):
+        lo, hi = bps[i], bps[i + 1]
+        mask = (clean >= lo) & (clean <= hi) if i == len(bps) - 2 else (clean >= lo) & (clean < hi)
+        if mask.sum() == 0:
+            continue
+        ev  = float(tgt_c[mask].sum())
+        nev = float(mask.sum() - ev)
+        d_ev = ev / total_ev + eps; d_nv = nev / total_nev + eps
+        woe = np.log(d_ev / d_nv)
+        records.append({"Bin": f"[{lo:.4g},{hi:.4g})", "Low": lo, "High": hi,
+                        "Count": int(mask.sum()), "Events": int(ev),
+                        "NonEvents": int(nev), "EventRate": ev / max(mask.sum(), 1),
+                        "WoE": woe, "IV": (d_ev - d_nv) * woe})
+    return pd.DataFrame(records)
+
+
+def _fit_woe_pipeline(X, y, features, n_bins=10):
+    pipeline = {}
+    for feat in features:
+        tbl  = _compute_woe_bins(X[feat], y, n_bins=n_bins)
+        clean = X[feat].dropna().values
+        bps  = np.unique(np.percentile(clean, np.linspace(0, 100, n_bins + 1))) if len(clean) else np.array([])
+        pipeline[feat] = {"table": tbl, "breakpoints": bps, "iv": tbl["IV"].sum()}
+    return pipeline
+
+
+def _apply_woe_pipeline(X, pipeline):
+    out = {}
+    for feat, info in pipeline.items():
+        tbl  = info["table"]
+        bps  = info["breakpoints"]
+        vals = X[feat].values.astype(float)
+        result = np.zeros(len(vals))
+        miss_r = tbl[tbl["Bin"] == "MISSING"]
+        miss_woe = float(miss_r["WoE"].iloc[0]) if len(miss_r) else 0.0
+        non_miss = tbl[tbl["Bin"] != "MISSING"].reset_index(drop=True)
+        woe_arr  = non_miss["WoE"].values.astype(float)
+        nan_mask = np.isnan(vals)
+        result[nan_mask] = miss_woe
+        if len(bps) >= 2 and len(woe_arr) > 0:
+            bi = np.digitize(vals[~nan_mask], bps[1:], right=False)
+            bi = np.clip(bi, 0, len(woe_arr) - 1)
+            result[~nan_mask] = woe_arr[bi]
+        out[f"{feat}_WOE"] = result
+    return pd.DataFrame(out, index=X.index)
+
+
+# ── Train models from processed data (used when no .pkl files exist) ───────────
+def _train_lgbm(X_train, y_train, X_val, y_val):
+    import lightgbm as lgb
+    from sklearn.metrics import roc_auc_score
+    model = lgb.LGBMClassifier(
+        n_estimators=1000, learning_rate=0.03, num_leaves=63,
+        min_child_samples=50, subsample=0.8, colsample_bytree=0.8,
+        class_weight="balanced", random_state=42, n_jobs=-1, verbose=-1,
+    )
+    model.fit(
+        X_train, y_train,
+        eval_set=[(X_val, y_val)],
+        eval_metric="auc",
+        callbacks=[lgb.early_stopping(50, verbose=False), lgb.log_evaluation(-1)],
+    )
+    return model
+
+
+def _train_scorecard(X_train, y_train):
+    from sklearn.linear_model import LogisticRegression
+    SC_FEATURES = [
+        "EXT_SOURCE_MEAN", "EXT_SOURCE_MIN", "CREDIT_INCOME_RATIO",
+        "ANNUITY_INCOME_RATIO", "CREDIT_TERM", "DAYS_EMPLOYED_RATIO",
+        "AMT_CREDIT", "AMT_INCOME_TOTAL", "DAYS_BIRTH", "FLAG_MISSING_EXT",
+    ]
+    sc_feats = [f for f in SC_FEATURES if f in X_train.columns]
+    woe_pl   = _fit_woe_pipeline(X_train[sc_feats], y_train, sc_feats, n_bins=10)
+    X_woe    = _apply_woe_pipeline(X_train[sc_feats], woe_pl)
+    lr = LogisticRegression(solver="lbfgs", max_iter=1000,
+                            class_weight="balanced", random_state=42)
+    lr.fit(X_woe, y_train)
+    return {"lr_model": lr, "woe_pipeline": woe_pl, "features": sc_feats,
+            "woe_feature_names": list(X_woe.columns)}
+
+
+# ── Load or train models (cached for the full session) ─────────────────────────
+@st.cache_resource(show_spinner="⏳ Setting up TrustGraph models — first run trains automatically (~2 min)…")
 def load_models():
-    with open(MODELS_DIR / "lgbm_final.pkl", "rb") as f:
-        lgbm = pickle.load(f)
-    with open(MODELS_DIR / "scorecard_final.pkl", "rb") as f:
-        sc_bundle = pickle.load(f)
+    """
+    Load pre-trained models if .pkl files exist (local dev).
+    Otherwise train from data/processed/features_train.csv (Streamlit Cloud).
+    Models are cached for the entire session via st.cache_resource.
+    """
+    from sklearn.model_selection import train_test_split
+    from sklearn.preprocessing import LabelEncoder
+
+    lgbm_path = MODELS_DIR / "lgbm_final.pkl"
+    sc_path   = MODELS_DIR / "scorecard_final.pkl"
+
+    # ── Fast path: .pkl files present (local or if committed) ─────────────────
+    if lgbm_path.exists() and sc_path.exists():
+        with open(lgbm_path, "rb") as f:
+            lgbm = pickle.load(f)
+        with open(sc_path, "rb") as f:
+            sc_bundle = pickle.load(f)
+        return lgbm, sc_bundle
+
+    # ── Slow path: train from features_train.csv or the tracked 15k sample ──────
+    feat_path = DATA_PROC / "features_train.csv"
+    if not feat_path.exists():
+        feat_path = DATA_PROC / "features_sample.csv"   # 10 MB sample committed to git
+    if not feat_path.exists():
+        # Last resort: train from raw data if available, else raise clear error
+        raw_path = ROOT / "data" / "raw" / "application_train.csv"
+        if not raw_path.exists():
+            st.error(
+                "❌ Neither model files nor processed data found. "
+                "Please add data/processed/features_train.csv or run notebooks 01–03 first."
+            )
+            st.stop()
+
+        # Minimal preprocessing from raw (mirrors notebook 03)
+        df = pd.read_csv(raw_path)
+        y  = df["TARGET"]
+        X  = df.drop(columns=["TARGET", "SK_ID_CURR"], errors="ignore")
+
+        # Engineered features
+        X["CREDIT_INCOME_RATIO"]  = X["AMT_CREDIT"] / X["AMT_INCOME_TOTAL"].replace(0, np.nan)
+        X["ANNUITY_INCOME_RATIO"] = X["AMT_ANNUITY"] / X["AMT_INCOME_TOTAL"].replace(0, np.nan)
+        X["CREDIT_TERM"]          = X["AMT_CREDIT"] / X["AMT_ANNUITY"].replace(0, np.nan)
+        emp_clean = X["DAYS_EMPLOYED"].replace(365243, np.nan)
+        X["DAYS_EMPLOYED_RATIO"]  = emp_clean / X["DAYS_BIRTH"].replace(0, np.nan)
+        ext_cols = ["EXT_SOURCE_1", "EXT_SOURCE_2", "EXT_SOURCE_3"]
+        X["EXT_SOURCE_MEAN"]      = X[ext_cols].mean(axis=1)
+        X["EXT_SOURCE_MIN"]       = X[ext_cols].min(axis=1)
+        X["INCOME_PER_PERSON"]    = X["AMT_INCOME_TOTAL"] / X["CNT_FAM_MEMBERS"].replace(0, np.nan)
+        X["FLAG_MISSING_EXT"]     = X[ext_cols].isnull().any(axis=1).astype(int)
+
+        le = LabelEncoder()
+        for col in X.select_dtypes(include="object").columns:
+            X[col] = le.fit_transform(X[col].fillna("MISSING").astype(str))
+        for col in X.select_dtypes(include=[np.number]).columns:
+            X[col] = X[col].fillna(X[col].median())
+    else:
+        df = pd.read_csv(feat_path)
+        y  = df["TARGET"]
+        X  = df.drop(columns=["TARGET", "SK_ID_CURR"], errors="ignore")
+
+    # Split (same params as notebooks)
+    X_train, X_val, y_train, y_val = train_test_split(
+        X, y, test_size=0.20, stratify=y, random_state=42
+    )
+
+    # Train both models
+    lgbm      = _train_lgbm(X_train, y_train, X_val, y_val)
+    sc_bundle = _train_scorecard(X_train, y_train)
+
+    # Persist to models/ so subsequent cold starts skip retraining
+    MODELS_DIR.mkdir(exist_ok=True)
+    with open(lgbm_path, "wb") as f:
+        pickle.dump(lgbm, f)
+    with open(sc_path, "wb") as f:
+        pickle.dump(sc_bundle, f)
+
     return lgbm, sc_bundle
 
 
