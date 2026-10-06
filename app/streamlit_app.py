@@ -24,104 +24,111 @@ sys.path.insert(0, str(SRC_DIR))
 # ── Page config (must be first Streamlit call) ─────────────────────────────────
 st.set_page_config(
     page_title="TrustGraph — Credit Risk Demo",
-    page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-# ── Custom CSS — dark, clean, professional ─────────────────────────────────────
+# ── Custom CSS — light, restrained, credit-report style ────────────────────────
 st.markdown("""
 <style>
-/* Base */
-html, body, [class*="css"] { font-family: 'Inter', 'Segoe UI', sans-serif; }
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@500;600&display=swap');
 
-/* Score cards */
-.score-card {
-    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-    border: 1px solid #334155;
-    border-radius: 12px;
-    padding: 1.5rem 2rem;
-    text-align: center;
-    margin: 0.5rem 0;
-}
-.score-number {
-    font-size: 3.5rem;
-    font-weight: 800;
-    letter-spacing: -2px;
-    line-height: 1;
-}
-.score-label {
-    font-size: 0.85rem;
-    color: #94a3b8;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    margin-top: 0.4rem;
+:root {
+    --ink:      #16212E;
+    --muted:    #5B6675;
+    --rule:     #DDE2E8;
+    --panel:    #F6F8FA;
+    --accent:   #23408E;
+    --approve:  #1E7B4F;
+    --refer:    #A86A00;
+    --decline:  #B42318;
 }
 
-/* Decision badge */
-.badge {
-    display: inline-block;
-    padding: 0.45rem 1.4rem;
-    border-radius: 999px;
-    font-size: 1rem;
-    font-weight: 700;
-    letter-spacing: 1px;
-    margin-top: 0.75rem;
+.stApp, .stMarkdown p, .stMarkdown li, .stMarkdown td, .stMarkdown th,
+label, .stButton button p, [data-testid="stMetricValue"], [data-testid="stMetricLabel"] p {
+    font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif;
 }
-.badge-approve  { background: #052e16; color: #4ade80; border: 1px solid #16a34a; }
-.badge-refer    { background: #1c1917; color: #fbbf24; border: 1px solid #d97706; }
-.badge-decline  { background: #2d0a0a; color: #f87171; border: 1px solid #dc2626; }
-
-/* Reason code box */
-.reason-box {
-    background: #0f172a;
-    border-left: 3px solid #3b82f6;
-    border-radius: 0 8px 8px 0;
-    padding: 0.8rem 1.2rem;
-    margin: 0.4rem 0;
-    font-size: 0.92rem;
-    color: #cbd5e1;
-    line-height: 1.5;
-}
+h1, h2, h3, h4 { font-family: 'IBM Plex Serif', Georgia, serif !important; color: var(--ink); font-weight: 600 !important; }
+h1 { letter-spacing: -0.5px; }
+[data-testid="stMetricValue"] { font-variant-numeric: tabular-nums; color: var(--ink); }
 
 /* Section header */
 .section-header {
-    font-size: 0.75rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 3px;
-    color: #64748b;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid #1e293b;
-    margin-bottom: 1rem;
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 1.35rem;
+    font-weight: 600;
+    color: var(--ink);
+    margin: 0.4rem 0 1rem 0;
 }
+.section-note { font-size: 0.9rem; color: var(--muted); margin: -0.6rem 0 1rem 0; }
 
-/* Comparison columns */
+/* Score card */
+.score-card {
+    background: #FFFFFF;
+    border: 1px solid var(--rule);
+    border-top: 4px solid var(--accent);
+    border-radius: 6px;
+    padding: 1.4rem 1.6rem;
+    margin: 0.5rem 0;
+}
+.score-number {
+    font-size: 3.6rem;
+    font-weight: 600;
+    line-height: 1;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+}
+.score-number small { font-size: 1.1rem; color: var(--muted); font-weight: 400; }
+.score-label { font-size: 0.9rem; color: var(--muted); margin-top: 0.35rem; }
+
+/* Decision chip */
+.badge {
+    display: inline-block;
+    padding: 0.3rem 0.9rem;
+    border-radius: 4px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-top: 0.9rem;
+}
+.badge-approve { background: #E7F4EC; color: var(--approve); }
+.badge-refer   { background: #FBF1DE; color: var(--refer); }
+.badge-decline { background: #FBE9E7; color: var(--decline); }
+
+/* Reason codes */
+.reason-box {
+    display: flex;
+    gap: 0.75rem;
+    align-items: baseline;
+    border-bottom: 1px solid var(--rule);
+    padding: 0.7rem 0;
+    font-size: 0.97rem;
+    color: var(--ink);
+    line-height: 1.5;
+}
+.reason-sign { font-weight: 700; width: 1rem; flex-shrink: 0; text-align: center; }
+
+/* Model comparison */
 .model-col {
-    background: #0f172a;
-    border: 1px solid #1e293b;
-    border-radius: 10px;
-    padding: 1.2rem;
-    text-align: center;
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 1.2rem 1.4rem;
 }
+.model-name { font-weight: 600; color: var(--ink); font-size: 1rem; }
+.model-score { font-size: 2.6rem; font-weight: 600; color: var(--ink); margin: 0.4rem 0 0 0; font-variant-numeric: tabular-nums; }
+.model-meta { font-size: 0.85rem; color: var(--muted); margin-top: 0.6rem; line-height: 1.5; }
 
-/* Fairness pill */
+/* Fairness note */
 .fairness-pill {
-    background: #0c1a2e;
-    border: 1px solid #1d4ed8;
-    border-radius: 8px;
-    padding: 0.6rem 1.2rem;
-    font-size: 0.88rem;
-    color: #93c5fd;
-    margin-top: 0.5rem;
+    background: var(--panel);
+    border-left: 3px solid var(--accent);
+    padding: 0.9rem 1.2rem;
+    font-size: 0.95rem;
+    color: var(--ink);
+    line-height: 1.6;
 }
 
-/* Metric delta colours */
-.delta-up   { color: #4ade80; }
-.delta-down { color: #f87171; }
-
-/* Divider */
-hr { border-color: #1e293b !important; }
+hr { border-color: var(--rule) !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -258,7 +265,7 @@ def load_models():
         raw_path = ROOT / "data" / "raw" / "application_train.csv"
         if not raw_path.exists():
             st.error(
-                "❌ Neither model files nor processed data found. "
+                "Neither model files nor processed data found. "
                 "Please add data/processed/features_train.csv or run notebooks 01–03 first."
             )
             st.stop()
@@ -365,11 +372,11 @@ def prob_to_score(prob: float) -> int:
 
 def score_to_decision(score: int):
     if score >= 600:
-        return "Approve",  "badge-approve",  "✅"
+        return "Approve",  "badge-approve",  ""
     elif score >= 400:
-        return "Refer",    "badge-refer",    "🔍"
+        return "Refer",    "badge-refer",    ""
     else:
-        return "Decline",  "badge-decline",  "❌"
+        return "Decline",  "badge-decline",  ""
 
 
 # ── Helper: plain-English reason codes ────────────────────────────────────────
@@ -430,7 +437,7 @@ def generate_reason_codes(row_dict: dict, prob: float, top_n: int = 3) -> list:
         positive = contrib > 0
         label    = FEATURE_SIGNALS.get(feat, ("positive signal", "risk signal"))
         text     = label[0] if positive else label[1]
-        icon     = "✔" if positive else "✘"
+        icon     = "+" if positive else "−"
         reasons.append((icon, text, positive))
 
     return reasons
@@ -491,7 +498,7 @@ def build_sc_row(inputs: dict) -> dict:
 # SIDEBAR
 # ══════════════════════════════════════════════════════════════════════════════
 with st.sidebar:
-    st.markdown("## 📊 TrustGraph")
+    st.markdown("## TrustGraph")
     st.markdown("""
     **TrustGraph** is an end-to-end credit risk scoring engine built for thin-file
     borrowers in emerging markets. It combines gradient-boosted models, WOE scorecards,
@@ -499,14 +506,10 @@ with st.sidebar:
     """)
 
     st.markdown("---")
-    st.markdown("#### 🔗 Research")
-    st.markdown("""
-    📄 [SSRN Working Paper](#) *(forthcoming)*
-    > *TrustGraph: Explainable Credit Scoring for Thin-File Borrowers in India*
-    """)
+    st.markdown("[View the code on GitHub](https://github.com/krishmakhija13/-TrustGraph)")
 
     st.markdown("---")
-    st.markdown("#### ⚙ Tech Stack")
+    st.markdown("#### Tech stack")
     st.markdown("""
     | Component | Library |
     |---|---|
@@ -519,7 +522,7 @@ with st.sidebar:
     """)
 
     st.markdown("---")
-    st.markdown("#### ⚠️ Disclaimer")
+    st.markdown("#### Disclaimer")
     st.caption(
         "Demo only. All India profiles are synthetic. "
         "Model trained on Home Credit Open Dataset (Kaggle). "
@@ -530,26 +533,26 @@ with st.sidebar:
 # ══════════════════════════════════════════════════════════════════════════════
 # MAIN CONTENT
 # ══════════════════════════════════════════════════════════════════════════════
-st.markdown("# 📊 TrustGraph Credit Scoring")
-st.markdown("*Real-time credit risk assessment with explainability and fairness auditing*")
+st.markdown("# TrustGraph credit scoring")
+st.markdown("Score a borrower, see the reasons behind the decision, and compare an accurate model with an explainable one.")
 st.markdown("---")
 
 # ── Quick-fill presets ─────────────────────────────────────────────────────────
-st.markdown('<div class="section-header">Quick Profiles</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-header">Start with a sample borrower</div>', unsafe_allow_html=True)
 col_p1, col_p2, col_p3, col_p4 = st.columns(4)
 
 preset = None
 with col_p1:
-    if st.button("🏪 Kirana Owner", use_container_width=True):
+    if st.button("Kirana owner", use_container_width=True):
         preset = "kirana"
 with col_p2:
-    if st.button("🚗 Gig Worker", use_container_width=True):
+    if st.button("Gig worker", use_container_width=True):
         preset = "gig"
 with col_p3:
-    if st.button("🌾 Small Farmer", use_container_width=True):
+    if st.button("Small farmer", use_container_width=True):
         preset = "farmer"
 with col_p4:
-    if st.button("💼 Salaried (Prime)", use_container_width=True):
+    if st.button("Salaried (prime)", use_container_width=True):
         preset = "salaried"
 
 PRESETS = {
@@ -570,7 +573,7 @@ st.markdown("---")
 # ══════════════════════════════════════════════════════════════════════════════
 # SECTION 1 — BORROWER PROFILE INPUT
 # ══════════════════════════════════════════════════════════════════════════════
-st.markdown('<div class="section-header">Section 1 — Borrower Profile</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-header">Borrower profile</div>', unsafe_allow_html=True)
 
 inp = st.session_state.inputs
 
@@ -655,10 +658,10 @@ cir          = loan_amount / max(annual_income, 1)
 air          = annuity / max(monthly_income, 1)
 
 mc1, mc2, mc3, mc4 = st.columns(4)
-mc1.metric("Annual Income", f"₹{annual_income:,.0f}")
+mc1.metric("Annual income", f"₹{annual_income:,.0f}")
 mc2.metric("Monthly EMI", f"₹{annuity:,.0f}")
-mc3.metric("Loan-to-Income", f"{cir:.1f}×", delta=f"{'⚠ High' if cir > 5 else 'OK'}", delta_color="inverse" if cir > 5 else "normal")
-mc4.metric("EMI/Income Ratio", f"{air:.1%}", delta=f"{'⚠ Stressed' if air > 0.5 else 'OK'}", delta_color="inverse" if air > 0.5 else "normal")
+mc3.metric("Loan-to-Income", f"{cir:.1f}×", delta=f"{'High' if cir > 5 else 'OK'}", delta_color="inverse" if cir > 5 else "normal")
+mc4.metric("EMI to income", f"{air:.1%}", delta=f"{'Stretched' if air > 0.5 else 'OK'}", delta_color="inverse" if air > 0.5 else "normal")
 
 # Build input dict for scoring
 days_birth_approx = -12000  # ~33 years old default
@@ -693,59 +696,50 @@ st.markdown("---")
 # ══════════════════════════════════════════════════════════════════════════════
 # SECTION 2 — TRUSTGRAPH SCORE
 # ══════════════════════════════════════════════════════════════════════════════
-st.markdown('<div class="section-header">Section 2 — TrustGraph Score</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-header">TrustGraph score</div>', unsafe_allow_html=True)
 
 score_col, reason_col = st.columns([1, 2], gap="large")
 
 with score_col:
-    # Score gauge colour
-    if lgbm_score >= 600:
-        score_color = "#4ade80"
-    elif lgbm_score >= 400:
-        score_color = "#fbbf24"
-    else:
-        score_color = "#f87171"
+    score_color = {"Approve": "#1E7B4F", "Refer": "#A86A00", "Decline": "#B42318"}[decision]
 
     st.markdown(f"""
     <div class="score-card">
-        <div class="score-number" style="color:{score_color};">{lgbm_score}</div>
-        <div class="score-label">TrustGraph Score  /  1000</div>
-        <div>
-            <span class="badge {badge_class}">{dec_icon} {decision}</span>
-        </div>
-        <div style="margin-top:1rem; font-size:0.8rem; color:#64748b;">
-            P(default) = {lgbm_prob:.3f}
+        <div class="score-number">{lgbm_score}<small> / 1000</small></div>
+        <div class="score-label">TrustGraph score</div>
+        <span class="badge {badge_class}">{decision}</span>
+        <div style="margin-top:0.9rem; font-size:0.85rem; color:#5B6675;">
+            Probability of default: {lgbm_prob:.1%}
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-    # Score band guide
     st.markdown("""
-    <div style="font-size:0.78rem; color:#64748b; margin-top:0.8rem; line-height:1.8;">
-    <span style="color:#4ade80;">●</span> 600–1000: <b>Approve</b><br>
-    <span style="color:#fbbf24;">●</span> 400–599: <b>Refer</b> (manual review)<br>
-    <span style="color:#f87171;">●</span> 0–399: <b>Decline</b>
+    <div style="font-size:0.85rem; color:#5B6675; margin-top:0.8rem; line-height:1.8;">
+    600 to 1000: approve<br>
+    400 to 599: refer for manual review<br>
+    Below 400: decline
     </div>
     """, unsafe_allow_html=True)
 
 with reason_col:
-    st.markdown("**Key drivers of this decision:**")
+    st.markdown("**What drove this decision**")
     for icon, text, positive in reason_codes:
-        colour = "#4ade80" if positive else "#f87171"
+        colour = "#1E7B4F" if positive else "#B42318"
         st.markdown(
             f'<div class="reason-box">'
-            f'<span style="color:{colour}; font-weight:700; margin-right:0.5rem;">{icon}</span>'
-            f'{text.capitalize()}'
+            f'<span class="reason-sign" style="color:{colour};">{icon}</span>'
+            f'<span>{text.capitalize()}</span>'
             f'</div>',
             unsafe_allow_html=True,
         )
 
     if flag_missing_ext:
         st.markdown(
-            '<div class="reason-box" style="border-color:#f59e0b;">'
-            '<span style="color:#f59e0b; font-weight:700; margin-right:0.5rem;">⚠</span>'
-            'Thin-file applicant — no formal credit bureau record. '
-            'Score relies entirely on income and loan structure signals.'
+            '<div class="reason-box">'
+            '<span class="reason-sign" style="color:#A86A00;">!</span>'
+            '<span>Thin-file applicant with no credit bureau record. '
+            'The score relies on income and loan structure alone.</span>'
             '</div>',
             unsafe_allow_html=True,
         )
@@ -753,12 +747,12 @@ with reason_col:
     # Score progress bar
     st.markdown(f"""
     <div style="margin-top:1rem;">
-        <div style="font-size:0.78rem; color:#64748b; margin-bottom:0.3rem;">Score band</div>
-        <div style="background:#1e293b; border-radius:999px; height:8px; overflow:hidden;">
+        <div style="font-size:0.85rem; color:#5B6675; margin-bottom:0.3rem;">Where this score sits</div>
+        <div style="background:#E6EAEF; border-radius:999px; height:8px; overflow:hidden;">
             <div style="width:{lgbm_score/10:.0f}%; background:{score_color}; height:100%; border-radius:999px;
                         transition: width 0.5s ease;"></div>
         </div>
-        <div style="display:flex; justify-content:space-between; font-size:0.72rem; color:#475569; margin-top:0.2rem;">
+        <div style="display:flex; justify-content:space-between; font-size:0.78rem; color:#5B6675; margin-top:0.2rem;">
             <span>0</span><span>Decline</span><span>Refer</span><span>Approve</span><span>1000</span>
         </div>
     </div>
@@ -769,7 +763,7 @@ st.markdown("---")
 # ══════════════════════════════════════════════════════════════════════════════
 # SECTION 3 — MODEL COMPARISON
 # ══════════════════════════════════════════════════════════════════════════════
-st.markdown('<div class="section-header">Section 3 — Model Comparison</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-header">Two models, same borrower</div>', unsafe_allow_html=True)
 
 lgbm_dec, lgbm_badge, lgbm_icon = score_to_decision(lgbm_score)
 sc_dec,   sc_badge,   sc_icon   = score_to_decision(sc_score)
@@ -777,33 +771,29 @@ sc_dec,   sc_badge,   sc_icon   = score_to_decision(sc_score)
 cmp_col1, cmp_spacer, cmp_col2 = st.columns([5, 1, 5])
 
 with cmp_col1:
-    lgbm_col = "#4ade80" if lgbm_score >= 600 else "#fbbf24" if lgbm_score >= 400 else "#f87171"
     st.markdown(f"""
     <div class="model-col">
-        <div style="font-size:0.75rem; color:#64748b; letter-spacing:2px; text-transform:uppercase;">LightGBM</div>
-        <div style="font-size:2.8rem; font-weight:800; color:{lgbm_col}; margin:0.5rem 0;">{lgbm_score}</div>
-        <span class="badge {lgbm_badge}">{lgbm_icon} {lgbm_dec}</span>
-        <div style="margin-top:0.8rem; font-size:0.8rem; color:#94a3b8;">P(default) = {lgbm_prob:.4f}</div>
-        <div style="margin-top:0.5rem; font-size:0.78rem; color:#475569;">Optimises <b>predictive accuracy</b><br>128 features · early stopping</div>
+        <div class="model-name">LightGBM</div>
+        <div class="model-score">{lgbm_score}</div>
+        <span class="badge {lgbm_badge}">{lgbm_dec}</span>
+        <div class="model-meta">Probability of default: {lgbm_prob:.1%}<br>Built for accuracy: 128 features, early stopping</div>
     </div>
     """, unsafe_allow_html=True)
 
 with cmp_col2:
-    sc_col = "#4ade80" if sc_score >= 600 else "#fbbf24" if sc_score >= 400 else "#f87171"
     st.markdown(f"""
     <div class="model-col">
-        <div style="font-size:0.75rem; color:#64748b; letter-spacing:2px; text-transform:uppercase;">WOE Scorecard</div>
-        <div style="font-size:2.8rem; font-weight:800; color:{sc_col}; margin:0.5rem 0;">{sc_score}</div>
-        <span class="badge {sc_badge}">{sc_icon} {sc_dec}</span>
-        <div style="margin-top:0.8rem; font-size:0.8rem; color:#94a3b8;">P(default) = {sc_prob:.4f}</div>
-        <div style="margin-top:0.5rem; font-size:0.78rem; color:#475569;">Optimises <b>transparency</b><br>10 features · auditable points table</div>
+        <div class="model-name">WOE scorecard</div>
+        <div class="model-score">{sc_score}</div>
+        <span class="badge {sc_badge}">{sc_dec}</span>
+        <div class="model-meta">Probability of default: {sc_prob:.1%}<br>Built for transparency: 10 features, auditable points table</div>
     </div>
     """, unsafe_allow_html=True)
 
 st.markdown("""
-<div style="text-align:center; margin-top:1rem; font-size:0.82rem; color:#64748b;">
-    LightGBM optimizes accuracy &nbsp;|&nbsp; Scorecard optimizes transparency.
-    Use LightGBM for portfolio-level decisions; Scorecard when the loan officer needs to explain the outcome to the applicant.
+<div style="margin-top:1rem; font-size:0.92rem; color:#5B6675; max-width:70ch;">
+    LightGBM is more accurate; the scorecard is easier to explain. Use LightGBM for portfolio-level decisions,
+    and the scorecard when a loan officer must explain the outcome to the applicant.
 </div>
 """, unsafe_allow_html=True)
 
@@ -812,28 +802,27 @@ st.markdown("---")
 # ══════════════════════════════════════════════════════════════════════════════
 # SECTION 4 — FAIRNESS NOTE
 # ══════════════════════════════════════════════════════════════════════════════
-st.markdown('<div class="section-header">Section 4 — Fairness Audit</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-header">Fairness audit</div>', unsafe_allow_html=True)
 
 if dpd_pre is not None:
     dpd_status = "within acceptable range" if abs(float(dpd_post)) <= 0.05 else "mitigated via ThresholdOptimizer"
     st.markdown(f"""
     <div class="fairness-pill">
-        🛡 This model has been audited for gender bias using Fairlearn.
-        &nbsp;|&nbsp; Demographic Parity Difference (pre-mitigation): <b>{dpd_pre:.4f}</b>
-        &nbsp;|&nbsp; Post-mitigation: <b>{dpd_post:.4f}</b> — {dpd_status}.
-        &nbsp;|&nbsp; Selection rates equalised across gender groups (M / F).
+        This model was audited for gender bias with Fairlearn.
+        Demographic parity difference fell from <b>{dpd_pre:.4f}</b> before mitigation to <b>{dpd_post:.4f}</b> after ({dpd_status}),
+        equalising approval rates between men and women.
     </div>
     """, unsafe_allow_html=True)
 else:
     st.markdown("""
     <div class="fairness-pill">
-        🛡 This model has been audited for gender bias using Fairlearn.
+        This model was audited for gender bias with Fairlearn.
         Run notebook 08_fairness.ipynb to generate fairness metrics.
     </div>
     """, unsafe_allow_html=True)
 
 st.markdown("""
-<div style="font-size:0.78rem; color:#475569; margin-top:0.6rem;">
+<div style="font-size:0.85rem; color:#5B6675; margin-top:0.6rem; max-width:80ch;">
     Fairness audit scope: gender parity (CODE_GENDER proxy), demographic parity difference,
     equalized odds difference. Mitigation method: post-processing ThresholdOptimizer.
     Audit cadence: recommended monthly in production.
@@ -841,4 +830,4 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.markdown("---")
-st.caption("TrustGraph v1.0 · Home Credit Open Dataset · For research and demonstration only.")
+st.caption("TrustGraph v1.0. Trained on the Home Credit open dataset. For research and demonstration only.")
